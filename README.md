@@ -6,7 +6,9 @@ Central developer documentation hub for Ledewire, published via GitHub Pages.
 
 Once GitHub Pages is enabled, the site will be at:
 
-**`https://ledewire.github.io/development-overview/`**
+**`https://ledewire.github.io/overview/`**
+
+> The URL path (`/overview/`) is set by the repository name — the repo must be named `overview` inside the `ledewire` GitHub organization.
 
 ### Enable GitHub Pages
 
