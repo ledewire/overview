@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Ledewire system architecture — services, design principles, and data flow.">
+  <title>Architecture — Ledewire Docs</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container">
+      <nav class="nav">
+        <a href="../index.html" class="nav-logo">
+          <div class="logo-icon">LW</div>
+          <span>Ledewire</span>
+        </a>
+        <ul class="nav-menu">
+          <li><a href="getting-started.html">Docs</a></li>
+          <li><a href="architecture.html" class="active">Architecture</a></li>
+          <li><a href="vision.html">Vision</a></li>
+          <li><a href="../roadmap.html">Roadmap</a></li>
+          <li><a href="contributing.html">Contributing</a></li>
+        </ul>
+        <a href="https://github.com/ledewire" class="btn btn-sm btn-outline" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="doc-layout">
+
+    <aside class="doc-sidebar">
+      <div class="sidebar-section">
+        <span class="sidebar-label">Getting Started</span>
+        <nav class="sidebar-nav">
+          <a href="getting-started.html">Overview</a>
+        </nav>
+      </div>
+      <div class="sidebar-section">
+        <span class="sidebar-label">Architecture</span>
+        <nav class="sidebar-nav">
+          <a href="architecture.html" class="active">System Overview</a>
+          <a href="architecture.html#principles">Design Principles</a>
+          <a href="architecture.html#services">Services</a>
+          <a href="architecture.html#data-flow">Data Flow</a>
+          <a href="architecture.html#tech-stack">Tech Stack</a>
+          <a href="services.html">Service Details</a>
+        </nav>
+      </div>
+      <div class="sidebar-section">
+        <span class="sidebar-label">Reference</span>
+        <nav class="sidebar-nav">
+          <a href="decisions.html">Decisions (ADRs)</a>
+          <a href="contributing.html">Contributing</a>
+        </nav>
+      </div>
+    </aside>
+
+    <main class="doc-content">
+      <h1>Architecture Overview</h1>
+      <p class="doc-description">
+        A high-level view of how Ledewire is designed &mdash; the services, boundaries,
+        and the principles that guide how we build.
+      </p>
+
+      <h2 id="principles">Design Principles</h2>
+      <p>These principles guide every significant technical decision in Ledewire:</p>
+      <!-- TODO: Replace with Ledewire's actual design principles -->
+      <ul>
+        <li><strong>Simplicity over cleverness.</strong> We prefer clear, boring code over clever abstractions.</li>
+        <li><strong>Explicit over implicit.</strong> Behavior should be visible and easy to trace.</li>
+        <li><strong>Service boundaries matter.</strong> Each service owns its data and exposes clean interfaces.</li>
+        <li><strong>Observability first.</strong> If we can&rsquo;t measure it, we can&rsquo;t improve it.</li>
+        <li><strong>Build for change.</strong> Defer decisions that can be deferred; avoid over-engineering early.</li>
+      </ul>
+
+      <h2 id="services">Services</h2>
+      <!-- TODO: Replace with the actual Ledewire service list -->
+      <p>
+        Ledewire is composed of several services, each with a focused responsibility.
+        See <a href="services.html" style="color: var(--brand-primary);">Service Details</a> for per-service documentation.
+      </p>
+
+      <div style="overflow-x: auto; margin: 24px 0;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+          <thead>
+            <tr style="border-bottom: 2px solid var(--border-color);">
+              <th style="text-align: left; padding: 10px 12px;">Service</th>
+              <th style="text-align: left; padding: 10px 12px;">Responsibility</th>
+              <th style="text-align: left; padding: 10px 12px;">Owner</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom: 1px solid var(--border-subtle);">
+              <td style="padding: 10px 12px;"><code>api-gateway</code></td>
+              <td style="padding: 10px 12px; color: var(--text-secondary);">Routing, auth enforcement, rate limiting</td>
+              <td style="padding: 10px 12px; color: var(--text-muted);"><!-- TODO --></td>
+            </tr>
+            <tr style="border-bottom: 1px solid var(--border-subtle);">
+              <td style="padding: 10px 12px;"><code>core-service</code></td>
+              <td style="padding: 10px 12px; color: var(--text-secondary);">Primary business logic</td>
+              <td style="padding: 10px 12px; color: var(--text-muted);"><!-- TODO --></td>
+            </tr>
+            <tr style="border-bottom: 1px solid var(--border-subtle);">
+              <td style="padding: 10px 12px;"><code>data-service</code></td>
+              <td style="padding: 10px 12px; color: var(--text-secondary);">Data persistence &amp; retrieval</td>
+              <td style="padding: 10px 12px; color: var(--text-muted);"><!-- TODO --></td>
+            </tr>
+            <tr>
+              <td style="padding: 10px 12px;"><code>worker</code></td>
+              <td style="padding: 10px 12px; color: var(--text-secondary);">Async job processing</td>
+              <td style="padding: 10px 12px; color: var(--text-muted);"><!-- TODO --></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="data-flow">Data Flow</h2>
+      <!-- TODO: Replace with an accurate description of the Ledewire request lifecycle -->
+      <p>
+        Requests enter through the API gateway, which handles authentication and routes
+        to the appropriate service. Core business logic lives in the core service,
+        which delegates persistence to the data service. Long-running operations
+        are enqueued and processed asynchronously by the worker.
+      </p>
+
+      <pre><code>Client
+  └── API Gateway        (auth, routing)
+        ├── Core Service   (business logic)
+        │     └── Data Service  (persistence)
+        └── Worker         (async jobs)
+              └── Data Service  (persistence)</code></pre>
+
+      <h2 id="tech-stack">Tech Stack</h2>
+      <!-- TODO: Update with actual technology choices -->
+      <p>
+        Key technology decisions are documented in the
+        <a href="decisions.html" style="color: var(--brand-primary);">ADRs</a>.
+        This is a high-level summary:
+      </p>
+      <ul>
+        <li><strong>Runtime:</strong> Node.js</li>
+        <li><strong>Language:</strong> TypeScript</li>
+        <li><strong>Database:</strong> PostgreSQL</li>
+        <li><strong>Queue:</strong> Redis / BullMQ</li>
+        <li><strong>Infrastructure:</strong> Docker, GitHub Actions</li>
+      </ul>
+
+      <div class="callout">
+        <p>
+          For the rationale behind these choices, see the
+          <a href="decisions.html" style="color: var(--brand-primary);">Architecture Decision Records</a>.
+        </p>
+      </div>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-content">
+        <div>
+          <span class="logo-text">Ledewire</span>
+          <p>Developer documentation hub</p>
+        </div>
+        <div class="footer-links">
+          <a href="getting-started.html">Getting Started</a>
+          <a href="architecture.html">Architecture</a>
+          <a href="../roadmap.html">Roadmap</a>
+          <a href="contributing.html">Contributing</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 Ledewire. Published via GitHub Pages.</p>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

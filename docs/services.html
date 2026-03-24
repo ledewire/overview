@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Ledewire service documentation — per-service guides, APIs, and ownership.">
+  <title>Services — Ledewire Docs</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container">
+      <nav class="nav">
+        <a href="../index.html" class="nav-logo">
+          <div class="logo-icon">LW</div>
+          <span>Ledewire</span>
+        </a>
+        <ul class="nav-menu">
+          <li><a href="getting-started.html">Docs</a></li>
+          <li><a href="architecture.html" class="active">Architecture</a></li>
+          <li><a href="vision.html">Vision</a></li>
+          <li><a href="../roadmap.html">Roadmap</a></li>
+          <li><a href="contributing.html">Contributing</a></li>
+        </ul>
+        <a href="https://github.com/ledewire" class="btn btn-sm btn-outline" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="doc-layout">
+
+    <aside class="doc-sidebar">
+      <div class="sidebar-section">
+        <span class="sidebar-label">Getting Started</span>
+        <nav class="sidebar-nav">
+          <a href="getting-started.html">Overview</a>
+        </nav>
+      </div>
+      <div class="sidebar-section">
+        <span class="sidebar-label">Architecture</span>
+        <nav class="sidebar-nav">
+          <a href="architecture.html">System Overview</a>
+          <a href="services.html" class="active">Services</a>
+        </nav>
+      </div>
+      <div class="sidebar-section">
+        <span class="sidebar-label">Reference</span>
+        <nav class="sidebar-nav">
+          <a href="decisions.html">Decisions (ADRs)</a>
+          <a href="contributing.html">Contributing</a>
+        </nav>
+      </div>
+    </aside>
+
+    <main class="doc-content">
+      <h1>Services</h1>
+      <p class="doc-description">
+        Per-service documentation for Ledewire. Each section covers a service&rsquo;s
+        purpose, API surface, configuration, and relevant operational notes.
+      </p>
+
+      <div class="callout">
+        <p>
+          <strong>This page is a starting point.</strong> As services grow, each one can
+          get its own dedicated page. For now, add a section below for each service.
+        </p>
+      </div>
+
+      <!-- TODO: Replace each section with real service documentation -->
+
+      <h2 id="api-gateway">api-gateway</h2>
+      <p>
+        Handles all inbound requests. Responsible for authentication validation,
+        request routing, and rate limiting.
+      </p>
+      <ul>
+        <li><strong>Repo:</strong> <code>ledewire/api-gateway</code> <!-- TODO --></li>
+        <li><strong>Port (local):</strong> <code>3000</code> <!-- TODO --></li>
+        <li><strong>Owner:</strong> <!-- TODO --></li>
+      </ul>
+
+      <h3>Configuration</h3>
+      <p><!-- TODO: Document key environment variables and config options --></p>
+      <pre><code># Key environment variables (see .env.example)
+PORT=3000
+JWT_SECRET=...
+RATE_LIMIT_WINDOW_MS=60000</code></pre>
+
+      <h2 id="core-service" style="margin-top: 48px;">core-service</h2>
+      <p>
+        Hosts the primary business logic for Ledewire. Coordinates domain operations
+        and orchestrates calls to other services.
+      </p>
+      <ul>
+        <li><strong>Repo:</strong> <code>ledewire/core-service</code> <!-- TODO --></li>
+        <li><strong>Port (local):</strong> <code>3001</code> <!-- TODO --></li>
+        <li><strong>Owner:</strong> <!-- TODO --></li>
+      </ul>
+
+      <h2 id="data-service" style="margin-top: 48px;">data-service</h2>
+      <p>
+        Manages all interactions with the primary database.
+        Exposes a stable internal API that other services consume &mdash;
+        no service writes to the database directly.
+      </p>
+      <ul>
+        <li><strong>Repo:</strong> <code>ledewire/data-service</code> <!-- TODO --></li>
+        <li><strong>Port (local):</strong> <code>3002</code> <!-- TODO --></li>
+        <li><strong>Owner:</strong> <!-- TODO --></li>
+      </ul>
+
+      <h2 id="worker" style="margin-top: 48px;">worker</h2>
+      <p>
+        Processes background jobs enqueued by other services.
+        Handles anything that doesn&rsquo;t need to complete within a request cycle.
+      </p>
+      <ul>
+        <li><strong>Repo:</strong> <code>ledewire/worker</code> <!-- TODO --></li>
+        <li><strong>Owner:</strong> <!-- TODO --></li>
+      </ul>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-content">
+        <div>
+          <span class="logo-text">Ledewire</span>
+          <p>Developer documentation hub</p>
+        </div>
+        <div class="footer-links">
+          <a href="getting-started.html">Getting Started</a>
+          <a href="architecture.html">Architecture</a>
+          <a href="../roadmap.html">Roadmap</a>
+          <a href="contributing.html">Contributing</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 Ledewire. Published via GitHub Pages.</p>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

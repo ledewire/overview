@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Architecture Decision Records for Ledewire — the why behind key technical choices.">
+  <title>Decisions (ADRs) — Ledewire Docs</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <style>
+    .adr-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 20px 24px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: start;
+      gap: 16px;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .adr-card:hover {
+      border-color: var(--brand-primary);
+      box-shadow: var(--shadow-sm);
+    }
+    .adr-card a { color: inherit; display: block; }
+    .adr-number {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+    .adr-card h3 { margin: 0 0 6px; font-size: 1rem; }
+    .adr-card p { margin: 0; font-size: 0.875rem; color: var(--text-secondary); }
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container">
+      <nav class="nav">
+        <a href="../index.html" class="nav-logo">
+          <div class="logo-icon">LW</div>
+          <span>Ledewire</span>
+        </a>
+        <ul class="nav-menu">
+          <li><a href="getting-started.html">Docs</a></li>
+          <li><a href="architecture.html">Architecture</a></li>
+          <li><a href="vision.html">Vision</a></li>
+          <li><a href="../roadmap.html">Roadmap</a></li>
+          <li><a href="contributing.html">Contributing</a></li>
+        </ul>
+        <a href="https://github.com/ledewire" class="btn btn-sm btn-outline" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="doc-layout">
+
+    <aside class="doc-sidebar">
+      <div class="sidebar-section">
+        <span class="sidebar-label">Getting Started</span>
+        <nav class="sidebar-nav">
+          <a href="getting-started.html">Overview</a>
+        </nav>
+      </div>
+      <div class="sidebar-section">
+        <span class="sidebar-label">Architecture</span>
+        <nav class="sidebar-nav">
+          <a href="architecture.html">System Overview</a>
+          <a href="services.html">Services</a>
+        </nav>
+      </div>
+      <div class="sidebar-section">
+        <span class="sidebar-label">Reference</span>
+        <nav class="sidebar-nav">
+          <a href="decisions.html" class="active">Decisions (ADRs)</a>
+          <a href="contributing.html">Contributing</a>
+        </nav>
+      </div>
+    </aside>
+
+    <main class="doc-content">
+      <h1>Architecture Decision Records</h1>
+      <p class="doc-description">
+        ADRs document the significant technical choices made in Ledewire &mdash;
+        what was decided, why, and what alternatives were considered.
+        They create an institutional memory that helps the team understand context over time.
+      </p>
+
+      <div class="callout">
+        <p>
+          <strong>How to add a new ADR:</strong> Copy the template below, save it as
+          <code>docs/adr/NNN-short-title.md</code>, and add a link to the index on this page.
+          ADRs are immutable once accepted &mdash; to change a decision, create a new ADR
+          that supersedes the old one.
+        </p>
+      </div>
+
+      <h2 style="margin-top: 40px;">Index</h2>
+
+      <div style="margin-top: 20px;">
+        <!-- TODO: Replace placeholder cards with real ADR entries as decisions are made -->
+        <div class="adr-card">
+          <div>
+            <div class="adr-number">ADR-001</div>
+            <h3>Example: Choice of Primary Database</h3>
+            <p>Rationale for selecting PostgreSQL as the primary data store over alternatives.</p>
+          </div>
+          <span class="focus-status status-active" style="white-space: nowrap; flex-shrink: 0;">Accepted</span>
+        </div>
+
+        <div class="adr-card" style="opacity: 0.5;">
+          <div>
+            <div class="adr-number">ADR-002</div>
+            <h3>Your next ADR goes here</h3>
+            <p>Add <code>.md</code> files to <code>docs/adr/</code> and link them from this index.</p>
+          </div>
+          <span class="focus-status status-planned" style="white-space: nowrap; flex-shrink: 0;">Placeholder</span>
+        </div>
+      </div>
+
+      <h2 style="margin-top: 52px;">ADR Template</h2>
+      <p>
+        Use this template when writing a new decision record.
+        Keep each ADR focused on a single decision.
+      </p>
+
+      <pre><code># ADR-NNN: Short Title of Decision
+
+**Status**: Proposed | Accepted | Deprecated | Superseded by ADR-NNN
+**Date**: YYYY-MM-DD
+**Deciders**: [names of key people involved]
+
+## Context
+What forces are at play? What problem are we solving?
+What constraints exist (technical, organizational, time)?
+
+## Decision
+What are we doing?
+
+## Consequences
+
+**Positive:**
+- What becomes easier or better?
+
+**Negative:**
+- What becomes harder or worse?
+- What tradeoffs are we accepting?
+
+**Neutral:**
+- What changes but is neither better nor worse?
+
+## Alternatives Considered
+
+**Option 1: [Name]**
+- Pros: ...
+- Cons: ...
+
+**Option 2: [Name]**
+- Pros: ...
+- Cons: ...
+
+## References
+- [Links to related docs, RFCs, benchmarks]</code></pre>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-content">
+        <div>
+          <span class="logo-text">Ledewire</span>
+          <p>Developer documentation hub</p>
+        </div>
+        <div class="footer-links">
+          <a href="getting-started.html">Getting Started</a>
+          <a href="architecture.html">Architecture</a>
+          <a href="../roadmap.html">Roadmap</a>
+          <a href="contributing.html">Contributing</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 Ledewire. Published via GitHub Pages.</p>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

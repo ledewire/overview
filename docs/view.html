@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ledewire Docs</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+  <style>
+    .md-loading {
+      color: var(--text-muted);
+      font-style: italic;
+      padding: 48px 0;
+    }
+    .md-error {
+      color: #dc2626;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container">
+      <nav class="nav">
+        <a href="../index.html" class="nav-logo">
+          <div class="logo-icon">LW</div>
+          <span>Ledewire</span>
+        </a>
+        <ul class="nav-menu">
+          <li><a href="getting-started.html">Docs</a></li>
+          <li><a href="architecture.html">Architecture</a></li>
+          <li><a href="vision.html">Vision</a></li>
+          <li><a href="../roadmap.html">Roadmap</a></li>
+          <li><a href="contributing.html">Contributing</a></li>
+        </ul>
+        <a href="https://github.com/ledewire" class="btn btn-sm btn-outline" target="_blank" rel="noopener noreferrer">GitHub &#x2197;</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="doc-layout">
+
+    <aside class="doc-sidebar">
+      <div class="sidebar-section">
+        <span class="sidebar-label">Getting Started</span>
+        <nav class="sidebar-nav">
+          <a href="getting-started.html">Overview</a>
+        </nav>
+      </div>
+      <div class="sidebar-section">
+        <span class="sidebar-label">Vision</span>
+        <nav class="sidebar-nav" id="vision-sidebar-nav">
+          <a href="vision.html">All Vision Docs</a>
+        </nav>
+      </div>
+      <div class="sidebar-section">
+        <span class="sidebar-label">Architecture</span>
+        <nav class="sidebar-nav">
+          <a href="architecture.html">System Overview</a>
+          <a href="services.html">Services</a>
+        </nav>
+      </div>
+      <div class="sidebar-section">
+        <span class="sidebar-label">Reference</span>
+        <nav class="sidebar-nav">
+          <a href="decisions.html">Decisions (ADRs)</a>
+          <a href="contributing.html">Contributing</a>
+        </nav>
+      </div>
+    </aside>
+
+    <main class="doc-content">
+      <div id="breadcrumb" style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 24px;">
+        <a href="vision.html" style="color: var(--brand-primary); font-weight: 500;">Vision</a> &rsaquo;
+        <span id="breadcrumb-title">Loading&hellip;</span>
+      </div>
+      <div id="md-content" class="md-loading">Loading document&hellip;</div>
+    </main>
+
+  </div>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-content">
+        <div>
+          <span class="logo-text">Ledewire</span>
+          <p>Developer documentation hub</p>
+        </div>
+        <div class="footer-links">
+          <a href="getting-started.html">Getting Started</a>
+          <a href="architecture.html">Architecture</a>
+          <a href="../roadmap.html">Roadmap</a>
+          <a href="contributing.html">Contributing</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 Ledewire. Published via GitHub Pages.</p>
+      </div>
+    </div>
+  </footer>
+
+  <!--
+    marked.js  — Markdown parser (MIT license, no build step required)
+    DOMPurify  — Sanitizes rendered HTML to prevent XSS
+  -->
+  <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
+  <script>
+    (function () {
+      'use strict';
+
+      var ALLOWED_PREFIXES = ['vision/', 'adr/'];
+
+      function getDocParam() {
+        var params = new URLSearchParams(window.location.search);
+        return params.get('doc') || '';
+      }
+
+      function isSafeDocPath(docPath) {
+        // Must end in .md, must not contain path traversal sequences,
+        // must start with an allowed relative prefix
+        if (!docPath || typeof docPath !== 'string') return false;
+        if (!docPath.endsWith('.md')) return false;
+        if (docPath.indexOf('..') !== -1) return false;
+        if (docPath.indexOf('//') !== -1) return false;
+        if (/[<>"'`\\]/.test(docPath)) return false;
+        return ALLOWED_PREFIXES.some(function (prefix) {
+          return docPath.startsWith(prefix);
+        });
+      }
+
+      function titleFromPath(docPath) {
+        var name = docPath.split('/').pop().replace(/\.md$/, '');
+        return name.replace(/[-_]/g, ' ').replace(/\b\w/g, function (c) {
+          return c.toUpperCase();
+        });
+      }
+
+      function renderError(msg) {
+        var el = document.getElementById('md-content');
+        el.className = 'md-error';
+        el.textContent = msg;
+        document.getElementById('breadcrumb-title').textContent = 'Error';
+        document.title = 'Error \u2014 Ledewire Docs';
+      }
+
+      function renderMarkdown(raw) {
+        var dirty = marked.parse(raw);
+        var clean = DOMPurify.sanitize(dirty);
+        var el = document.getElementById('md-content');
+        el.className = '';
+        el.innerHTML = clean;
+
+        // Use first H1 as the page title if present
+        var firstH1 = el.querySelector('h1');
+        if (firstH1) {
+          document.title = firstH1.textContent + ' \u2014 Ledewire Docs';
+          document.getElementById('breadcrumb-title').textContent = firstH1.textContent;
+        }
+      }
+
+      var docPath = getDocParam();
+
+      if (!isSafeDocPath(docPath)) {
+        renderError('No valid document specified. Return to the Vision index.');
+        return;
+      }
+
+      var title = titleFromPath(docPath);
+      document.getElementById('breadcrumb-title').textContent = title;
+      document.title = title + ' \u2014 Ledewire Docs';
+
+      fetch(docPath)
+        .then(function (res) {
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          return res.text();
+        })
+        .then(renderMarkdown)
+        .catch(function () {
+          renderError('Could not load \u201c' + docPath + '\u201d. Make sure the file exists in the repository.');
+        });
+    }());
+  </script>
+
+</body>
+</html>

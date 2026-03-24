@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="How to contribute to Ledewire — branches, commits, PRs, and code review.">
+  <title>Contributing — Ledewire Docs</title>
+  <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container">
+      <nav class="nav">
+        <a href="../index.html" class="nav-logo">
+          <div class="logo-icon">LW</div>
+          <span>Ledewire</span>
+        </a>
+        <ul class="nav-menu">
+          <li><a href="getting-started.html">Docs</a></li>
+          <li><a href="architecture.html">Architecture</a></li>
+          <li><a href="vision.html">Vision</a></li>
+          <li><a href="../roadmap.html">Roadmap</a></li>
+          <li><a href="contributing.html" class="active">Contributing</a></li>
+        </ul>
+        <a href="https://github.com/ledewire" class="btn btn-sm btn-outline" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="doc-layout">
+
+    <aside class="doc-sidebar">
+      <div class="sidebar-section">
+        <span class="sidebar-label">Getting Started</span>
+        <nav class="sidebar-nav">
+          <a href="getting-started.html">Overview</a>
+        </nav>
+      </div>
+      <div class="sidebar-section">
+        <span class="sidebar-label">Architecture</span>
+        <nav class="sidebar-nav">
+          <a href="architecture.html">System Overview</a>
+          <a href="services.html">Services</a>
+        </nav>
+      </div>
+      <div class="sidebar-section">
+        <span class="sidebar-label">Reference</span>
+        <nav class="sidebar-nav">
+          <a href="decisions.html">Decisions (ADRs)</a>
+          <a href="contributing.html" class="active">Contributing</a>
+        </nav>
+      </div>
+    </aside>
+
+    <main class="doc-content">
+      <h1>Contributing</h1>
+      <p class="doc-description">
+        How to contribute to Ledewire &mdash; from branch conventions and commit messages
+        to the pull request process and code review expectations.
+      </p>
+
+      <h2>Workflow Overview</h2>
+      <ol>
+        <li>Create a branch off <code>main</code></li>
+        <li>Make your changes, with tests</li>
+        <li>Open a pull request against <code>main</code></li>
+        <li>Address review feedback</li>
+        <li>Merge after approval</li>
+      </ol>
+
+      <h2>Branch Conventions</h2>
+      <p>Use the following prefixes for branch names:</p>
+      <ul>
+        <li><code>feat/short-description</code> &mdash; new features</li>
+        <li><code>fix/short-description</code> &mdash; bug fixes</li>
+        <li><code>chore/short-description</code> &mdash; maintenance, tooling, refactors</li>
+        <li><code>docs/short-description</code> &mdash; documentation changes</li>
+      </ul>
+
+      <pre><code># Examples
+git checkout -b feat/user-authentication
+git checkout -b fix/login-redirect-loop
+git checkout -b docs/update-architecture-overview</code></pre>
+
+      <h2>Commit Messages</h2>
+      <p>
+        Follow
+        <a href="https://www.conventionalcommits.org/" target="_blank" rel="noopener noreferrer" style="color: var(--brand-primary);">Conventional Commits</a>:
+      </p>
+
+      <pre><code>type(scope): short description in imperative mood
+
+# Examples
+feat(auth): add OAuth2 login flow
+fix(api): return 404 for missing resources instead of 500
+chore(deps): bump @types/node to 20.x
+docs(readme): update local setup instructions</code></pre>
+
+      <h2>Pull Requests</h2>
+      <p>Before opening a PR, make sure:</p>
+      <ul>
+        <li>All tests pass locally &mdash; <code>npm test</code></li>
+        <li>Linting passes &mdash; <code>npm run lint</code></li>
+        <li>Your branch is up to date with <code>main</code></li>
+        <li>The PR description explains what changed and why</li>
+      </ul>
+
+      <div class="callout warning">
+        <p>
+          <strong>Keep PRs small and focused.</strong> Large, sprawling PRs are hard to review and slow
+          to merge. If your change touches many unrelated areas, consider splitting it into sequential PRs.
+        </p>
+      </div>
+
+      <h3>PR Description Template</h3>
+      <pre><code>## What changed
+[Brief summary of what this PR does]
+
+## Why
+[Context: issue reference, business reason, or problem solved]
+
+## How to test
+[Steps for the reviewer to verify the change works]
+
+## Screenshots (if applicable)</code></pre>
+
+      <h2>Code Review</h2>
+      <p>Reviews should be constructive and focused on the code. As an author, be open to feedback. As a reviewer:</p>
+      <ul>
+        <li>Approve when the change is good enough &mdash; don&rsquo;t block on style nits</li>
+        <li>Use <strong>blocking</strong> comments only for correctness issues</li>
+        <li>Use <strong>suggestions</strong> for style and preference feedback</li>
+        <li>Aim to review within one business day</li>
+        <li>Ask questions before assuming intent</li>
+      </ul>
+
+      <h2>Coding Standards</h2>
+      <!-- TODO: Link to actual linting config and style guide -->
+      <p>
+        We use ESLint with Prettier for consistent formatting. The config lives in
+        <code>.eslintrc.js</code> and <code>.prettierrc</code> at the repo root.
+        Run <code>npm run lint:fix</code> to auto-fix most issues before committing.
+      </p>
+
+      <h2>Questions?</h2>
+      <!-- TODO: Add actual communication channel -->
+      <p>
+        If you&rsquo;re unsure about an approach, ask in the team&rsquo;s engineering channel
+        before investing time in a direction that might not align. It&rsquo;s always better
+        to ask early than to rework late.
+      </p>
+
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-content">
+        <div>
+          <span class="logo-text">Ledewire</span>
+          <p>Developer documentation hub</p>
+        </div>
+        <div class="footer-links">
+          <a href="getting-started.html">Getting Started</a>
+          <a href="architecture.html">Architecture</a>
+          <a href="../roadmap.html">Roadmap</a>
+          <a href="contributing.html">Contributing</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 Ledewire. Published via GitHub Pages.</p>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
