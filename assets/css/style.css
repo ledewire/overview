@@ -530,6 +530,49 @@ p {
 }
 
 /* ==========================================
+   TABLES (rendered Markdown)
+   ========================================== */
+.doc-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 28px 0;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  overflow-x: auto;
+  display: block;
+}
+.doc-content table thead tr {
+  background: var(--bg-alt);
+  border-bottom: 2px solid var(--border-color);
+}
+.doc-content table th {
+  padding: 12px 18px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.doc-content table td {
+  padding: 12px 18px;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-subtle);
+  vertical-align: top;
+}
+.doc-content table tbody tr:last-child td {
+  border-bottom: none;
+}
+.doc-content table tbody tr:hover td {
+  background: var(--bg-alt);
+}
+.doc-content table code {
+  font-size: 0.82em;
+  white-space: nowrap;
+}
+
+/* ==========================================
    CALLOUT BOXES
    ========================================== */
 .callout {
