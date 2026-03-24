@@ -477,7 +477,8 @@ p {
 
 .doc-content {
   padding: 48px 56px;
-  max-width: 780px;
+  max-width: 100%;
+  min-width: 0;
 }
 .doc-content h1 { margin-bottom: 12px; }
 .doc-content .doc-description {

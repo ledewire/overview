@@ -1,8 +1,14 @@
 # x402 Wallet Payment Design
 
 **Status:** Proposed — Under Review
+
 **Date:** 2026-03-23
-**Related:** [docs/wallet-transaction-history-and-purchase-fee-breakdown.md](wallet-transaction-history-and-purchase-fee-breakdown.md), [docs/flow-testing-design.md](flow-testing-design.md), [docs/author-payouts-and-accounting.md](author-payouts-and-accounting.md)
+
+**Related:**
+
+- [docs/wallet-transaction-history-and-purchase-fee-breakdown.md](wallet-transaction-history-and-purchase-fee-breakdown.md)
+- [docs/flow-testing-design.md](flow-testing-design.md),
+- [docs/author-payouts-and-accounting.md](author-payouts-and-accounting.md)
 
 ---
 
