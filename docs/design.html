@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Ledewire vision — strategic direction, principles, and long-term thinking.">
-  <title>Vision — Ledewire Docs</title>
+  <meta name="description" content="Ledewire design docs — implementation specs, feature designs, and accounting details.">
+  <title>Design Docs — Ledewire Docs</title>
   <link rel="stylesheet" href="../assets/css/style.css">
 </head>
 <body>
@@ -19,8 +19,8 @@
         <ul class="nav-menu">
           <li><a href="getting-started.html">Docs</a></li>
           <li><a href="architecture.html">Architecture</a></li>
-          <li><a href="vision.html" class="active">Vision</a></li>
-          <li><a href="design.html">Design</a></li>
+          <li><a href="vision.html">Vision</a></li>
+          <li><a href="design.html" class="active">Design</a></li>
           <li><a href="testing.html">Testing</a></li>
           <li><a href="../roadmap.html">Roadmap</a></li>
           <li><a href="contributing.html">Contributing</a></li>
@@ -42,18 +42,17 @@
       <div class="sidebar-section">
         <span class="sidebar-label">Vision</span>
         <nav class="sidebar-nav">
-          <a href="vision.html" class="active">All Vision Docs</a>
-          <a href="view.html?doc=vision/overview.md">Overview</a>
-          <a href="view.html?doc=vision/x402-wallet-payment-design.md">x402 Wallet Payment Design</a>
-          <a href="view.html?doc=vision/js-gate-design.md">JS Gate Design</a>
-          <a href="view.html?doc=vision/agentic-content-delivery-design.md">Agentic Content Delivery</a>
-          <!-- Add new vision doc links here -->
+          <a href="vision.html">All Vision Docs</a>
         </nav>
       </div>
       <div class="sidebar-section">
         <span class="sidebar-label">Design</span>
         <nav class="sidebar-nav">
-          <a href="design.html">All Design Docs</a>
+          <a href="design.html" class="active">All Design Docs</a>
+          <a href="view.html?doc=design/author-payouts-and-accounting.md">Author Payouts &amp; Accounting</a>
+          <a href="view.html?doc=design/wallet-transaction-history-and-purchase-fee-breakdown.md">Wallet Transaction History</a>
+          <a href="view.html?doc=design/funding-transfer-edge-cases.md">Funding Transfer Edge Cases</a>
+          <!-- Add new design doc links here -->
         </nav>
       </div>
       <div class="sidebar-section">
@@ -79,42 +78,35 @@
     </aside>
 
     <main class="doc-content">
-      <h1>Vision</h1>
+      <h1>Design Docs</h1>
       <p class="doc-description">
-        Strategic thinking, long-term direction, and the principles that guide how
-        Ledewire evolves. These documents are less about what we&rsquo;re building
-        right now and more about <em>why</em> &mdash; and where we&rsquo;re ultimately headed.
+        Implementation specs and feature design documents. These describe how specific
+        features are built &mdash; data models, API contracts, accounting logic, and
+        decision points for work that is in progress or recently completed.
       </p>
 
       <h2>Documents</h2>
 
       <div class="cards-grid" style="margin-top: 20px;">
 
-        <a href="view.html?doc=vision/overview.md" class="card">
-          <span class="card-icon">&#x1F9ED;</span>
-          <h3>Vision Overview</h3>
-          <p>The north star for Ledewire &mdash; what we&rsquo;re building toward and the principles that shape our decisions.</p>
+        <a href="view.html?doc=design/author-payouts-and-accounting.md" class="card">
+          <span class="card-icon">&#x1F4B8;</span>
+          <h3>Author Payouts &amp; Accounting</h3>
+          <p>Stripe Connect integration with per-author fee accounting, settlement batches, double-entry bookkeeping, and refund handling.</p>
           <span class="card-link">Read &rarr;</span>
         </a>
 
-        <a href="view.html?doc=vision/x402-wallet-payment-design.md" class="card">
-          <span class="card-icon">&#x1F4B3;</span>
-          <h3>x402 Wallet Payment Design</h3>
-          <p>Proposed design for wallet-based payments using the x402 protocol, including transaction flow, fee breakdown, and author payouts.</p>
+        <a href="view.html?doc=design/wallet-transaction-history-and-purchase-fee-breakdown.md" class="card">
+          <span class="card-icon">&#x1F4CA;</span>
+          <h3>Wallet Transaction History &amp; Fee Breakdown</h3>
+          <p>API design for wallet transaction history and per-purchase fee breakdowns exposed to merchants and buyers.</p>
           <span class="card-link">Read &rarr;</span>
         </a>
 
-        <a href="view.html?doc=vision/js-gate-design.md" class="card">
-          <span class="card-icon">&#x1F6AA;</span>
-          <h3>JS Gate Design</h3>
-          <p>Soft content gating via an embeddable script &mdash; architecture, content registration flow, purchase UX, and token lifecycle.</p>
-          <span class="card-link">Read &rarr;</span>
-        </a>
-
-        <a href="view.html?doc=vision/agentic-content-delivery-design.md" class="card">
-          <span class="card-icon">&#x1F916;</span>
-          <h3>Agentic Content Delivery</h3>
-          <p>Strategy for enforcing x402 paywalls at the origin so AI agents pay for content directly &mdash; delivery mechanisms, the Bazaar discovery layer, and implementation roadmap.</p>
+        <a href="view.html?doc=design/funding-transfer-edge-cases.md" class="card">
+          <span class="card-icon">&#x26A0;&#xFE0F;</span>
+          <h3>Funding Transfer Edge Cases</h3>
+          <p>Test coverage plan for funding transfer hardening &mdash; race conditions, NULL status vulnerabilities, and double-crediting prevention.</p>
           <span class="card-link">Read &rarr;</span>
         </a>
 

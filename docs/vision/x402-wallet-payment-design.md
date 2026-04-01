@@ -1,7 +1,8 @@
-# x402 Wallet Payments
+# x402 Wallet Payment Design
 
-**Status:** Proposed — Under Review
-**Date:** 2026-03-27
+**Status:** Implemented — Reviewed against x402 v2 spec
+**Date:** 2026-03-23
+**Related:** [design/wallet-transaction-history-and-purchase-fee-breakdown.md](../design/wallet-transaction-history-and-purchase-fee-breakdown.md), [testing/flow-testing-design.md](../testing/flow-testing-design.md), [design/author-payouts-and-accounting.md](../design/author-payouts-and-accounting.md)
 
 ---
 
@@ -13,45 +14,54 @@
 4. [Request / Response Lifecycle](#request--response-lifecycle)
 5. [The `ledewire-wallet` Scheme](#the-ledewire-wallet-scheme)
 6. [Implementation Architecture](#implementation-architecture)
-7. [Browser / Human Client Integration](#browser--human-client-integration)
+7. [Browser Extension / Custom Interceptor Integration](#browser-extension--custom-interceptor-integration)
 8. [Security: Nonce & Idempotency](#security-nonce--idempotency)
 9. [What Does Not Change](#what-does-not-change)
 10. [Out of Scope](#out-of-scope)
-11. [Open Questions](#open-questions)
-12. [Implementation Checklist](#implementation-checklist)
+11. [x402 Spec Compliance Notes](#x402-spec-compliance-notes)
+12. [Open Questions](#open-questions)
+13. [Implementation Checklist](#implementation-checklist)
 
 ---
 
 ## Motivation
 
-The current content purchase flow requires three sequential steps:
+Ledewire has two purchase paths, each for a different client context:
+
+**`POST /v1/purchases` (authenticated REST)** — for clients that already have a
+Ledewire buyer session (JWT). This is the path used by the Ledewire web app and the
+`@ledewire/gate` embed. The buyer is logged in; identity is established before the
+request; one round-trip to purchase.
+
+**`GET /v1/x402/contents/:id` (this document)** — for clients that have **no
+pre-existing Ledewire session**: AI agents, Cloudflare Workers, browser extensions,
+CMS plugins, and any automated pipeline that consumes content programmatically. These
+clients cannot hold a session between requests and cannot navigate a login flow.
+
+x402 solves the unauthenticated client problem elegantly. The old checkout state
+machine required three steps even for these clients:
 
 1. `GET /v1/checkout/state` — fetch checkout state and create a pending `Purchase`
 2. Ensure the buyer has sufficient wallet balance (separate funding flow if not)
 3. `POST /v1/purchases` — complete the purchase; deduct from wallet
 
-This multi-step state machine adds friction for all client types. It is particularly
-poor for:
+This is an unrealistic ask for an AI agent or a Cloudflare Worker. [x402](https://docs.x402.org)
+is an open HTTP payment standard (Apache-2.0) built around the long-reserved
+`402 Payment Required` status code. It defines a two-step HTTP conversation: the
+server declares its price in a `402` response; the client retries with a signed
+payment payload in a `PAYMENT-SIGNATURE` header. x402-aware clients handle this
+conversation automatically, making paid content access completely transparent to
+the calling code — no session, no checkout flow, no state machine.
 
-- **Human browsers** that want a single-click, zero-friction purchase experience
-  (e.g. "Watch ad-free" or "Unlock article") without navigating a checkout flow
-- **AI agents and automated clients** that need to acquire content programmatically
-  in a single round-trip
-- **Third-party integrations** where implementing ledewire's checkout state machine
-  is a significant integration burden
-- **Machine-to-machine content consumption** where a service purchases content on
-  behalf of a workflow, not a human session
+**Human browsers with an active Ledewire session should use `POST /purchases`,
+not x402.** x402 can work in a browser via a thin interceptor, but there is no
+reason to use the challenge-response round-trip when the buyer is already logged in.
+The `@ledewire/gate` embed and the Ledewire web app both use `POST /purchases`
+for this reason.
 
-[x402](https://docs.x402.org) is an open HTTP payment standard (Apache-2.0) built
-around the long-reserved `402 Payment Required` status code. It defines a
-two-step HTTP conversation: the server declares its price in a `402` response;
-the client retries with a signed payment payload in a `PAYMENT-SIGNATURE` header.
-Clients that speak x402 handle this conversation automatically, making paid content
-access completely transparent to the calling code.
-
-This document proposes exposing a parallel `/v1/x402/contents/:id` endpoint family
-that implements the x402 protocol using the **existing ledewire fiat wallet** as the
-payment rail — with no changes to the underlying accounting, fee-splitting, or
+This document designs the `/v1/x402/contents/:id` endpoint family, which implements
+the x402 protocol using the **existing ledewire fiat wallet** as the payment rail —
+with no changes to the underlying accounting, fee-splitting, or
 `Transactions::PurchaseContent` service.
 
 ---
@@ -164,13 +174,16 @@ Client                                   Ledewire API (/v1/x402/contents/:id)
   │      transaction: "<purchase-uuid>",         │
   │      network: "ledewire:v1",                 │
   │      payer: "<user-uuid>" }                  │
-  │    { ...DetailedPurchasePresenter... }       │
+  │    { ...X402ContentPresenter... }            │
 ```
 
 If the wallet has insufficient funds, `Transactions::PurchaseContent` returns a
 `FailureResponse` which the controller renders as `422 Unprocessable Content` —
-the same behaviour as the existing purchase endpoint. The x402 spec permits
-non-`402` error codes for server-side failures.
+the same behaviour as the existing purchase endpoint. This is an intentional
+deviation from the x402 v2 HTTP transport spec, which expects a `402` response
+with `PAYMENT-RESPONSE: { success: false, errorReason: "insufficient_funds", ... }`
+on settlement failure. See [x402 Spec Compliance Notes](#x402-spec-compliance-notes)
+for the full rationale and interoperability consequences.
 
 ### Returning purchaser (already owns the content)
 
@@ -210,7 +223,8 @@ content, the server returns `200` immediately — no `402` issued, no nonce crea
 ```
 
 This is transparent to x402 clients (they never see a `402`) and aligns with how
-browsers already operate when the user is logged in. See Open Question 8.
+browsers already operate when the user is logged in. This optimisation is included
+in the initial implementation (resolved in Q8).
 
 ---
 
@@ -270,6 +284,7 @@ Top-level `PaymentPayload` v2 envelope:
 | `transaction` | UUID string | The `purchases.id` record (serves as the transaction identifier) |
 | `network` | `"ledewire:v1"` | Network identifier |
 | `payer` | UUID string | The buying user's `users.id` |
+| `accessToken` | JWT string (optional) | RS256-signed entitlement JWT. Claims: `{ iss: "ledewire", sub: user_id, content_id, store_id, resource_url, entitled_for: ["purchase"], exp, kid: "ledewire-x402-v1" }`. Verifiable offline via `/.well-known/x402-jwks.json`. Omitted if signing key is not configured. |
 
 ---
 
@@ -287,10 +302,12 @@ Controller concern encapsulating the full x402 conversation:
 module X402WalletPaywall
   extend ActiveSupport::Concern
 
-  NONCE_TTL      = 5.minutes
-  NONCE_CACHE_NS = "x402:nonce:"
-  SCHEME         = "ledewire-wallet"
-  NETWORK        = "ledewire:v1"
+  NONCE_TTL          = 5.minutes
+  NONCE_CACHE_NS     = "x402:nonce:"
+  RATE_CACHE_NS      = "x402:rate:"
+  RATE_LIMIT_PER_MIN = 30
+  SCHEME             = "ledewire-wallet"
+  NETWORK            = "ledewire:v1"
 
   # Entry point called by controllers.
   # Returns SuccessResponse(Purchase) or FailureResponse.
@@ -385,6 +402,68 @@ module X402WalletPaywall
         end
       end
   end
+
+  # Per-IP rate limiter using a 1-minute tumbling-window counter in Solid Cache.
+  # Called by the controller before any nonce issuance or purchase lookup.
+  # Returns nil when within the limit; FailureResponse(:too_many_requests) otherwise.
+  def enforce_rate_limit
+    bucket = Time.current.to_i / 60
+    key    = "#{RATE_CACHE_NS}#{request.remote_ip}:#{bucket}"
+    Rails.cache.write(key, 0, expires_in: 2.minutes, unless_exist: true)
+    count = Rails.cache.increment(key)
+    return if count <= RATE_LIMIT_PER_MIN
+
+    FailureResponse.new("Too many requests", status: :too_many_requests)
+  end
+end
+```
+
+### `app/presenters/x402_content_presenter.rb`
+
+A purpose-built presenter for the x402 `200` response. Returns the content itself
+(body or URI, gated to the settled purchase) plus the `purchase_id` for client-side
+receipt storage. No `access_info` block — all checkout-state fields are predetermined
+on this path and `wallet_balance_cents` would be an unnecessary disclosure.
+
+```ruby
+# frozen_string_literal: true
+
+class X402ContentPresenter
+  include SchemaBacked
+  schema_name "X402ContentResponse"
+
+  def initialize(content:, purchase:)
+    @content  = content
+    @purchase = purchase
+  end
+
+  def present
+    content_data = base_fields
+    content_data[:purchase_id] = @purchase&.id  # nil for free content
+    content_data
+  end
+
+  private
+
+  def base_fields
+    shared = {
+      id:                  @content.id,
+      content_type:        @content.content_type,
+      title:               @content.title,
+      price_cents:         @content.price_cents,
+      teaser:              @content.teaser.to_s,
+      visibility:          @content.visibility,
+      metadata:            @content.metadata,
+      external_identifier: @content.external_identifier
+    }
+
+    if @content.external_ref_content?
+      # content_uri is the unlock — reveal it now that payment is settled.
+      shared.merge(content_uri: @content.content_uri.to_s)
+    else
+      shared.merge(content_body: @content.content_body.to_s)
+    end
+  end
 end
 ```
 
@@ -403,12 +482,47 @@ module V1
         return render_response(FailureResponse.new("Content not found", status: :not_found)) \
           unless content
 
+        # Rate-limit before any nonce issuance or DB lookup.
+        rate_check = enforce_rate_limit
+        return render_response(rate_check) if rate_check
+
+        # Free content: return immediately — no 402, no Purchase record.
+        if content.price_cents.zero?
+          return render_response(
+            SuccessResponse.new(X402ContentPresenter.new(content: content, purchase: nil).present)
+          )
+        end
+
+        # Returning purchaser: if Authorization header is present and the user already
+        # has a completed purchase, serve content directly without a 402 round-trip.
+        if (existing = completed_purchase_for(content))
+          return render_response(
+            SuccessResponse.new(X402ContentPresenter.new(content: content, purchase: existing).present)
+          )
+        end
+
         payment_result = require_wallet_payment(content)
         return render_response(payment_result) unless payment_result.success?
 
+        purchase = payment_result.result
         render_response(
-          SuccessResponse.new(DetailedPurchasePresenter.new(payment_result.result).present)
+          SuccessResponse.new(X402ContentPresenter.new(content: content, purchase: purchase).present)
         )
+      end
+
+      private
+
+      # Resolves the optional Authorization header and returns a completed Purchase
+      # for this content, or nil. Auth failures are silent — the x402 flow handles
+      # authentication for new purchases.
+      def completed_purchase_for(content)
+        token = request.headers["Authorization"].to_s.split.last
+        return nil if token.blank?
+
+        result = Authentication::AuthToken.new.user_from_token(token)
+        return nil unless result.success?
+
+        result.result.purchases.find_by(content: content, status: :completed)
       end
     end
   end
@@ -429,14 +543,22 @@ This yields `GET /v1/x402/contents/:id`.
 
 ---
 
-## Browser / Human Client Integration
+## Browser Extension / Custom Interceptor Integration
+
+> **Note:** Browsers with an active Ledewire session should use `POST /purchases`
+> via the `@ledewire/gate` embed — not x402. The x402 endpoint is designed for
+> **unauthenticated or sessionless clients**: browser extensions, AI agents,
+> Cloudflare Workers, and CMS plugins. The section below documents how such a
+> client would build a `ledewire-wallet` interceptor for cases where one is needed
+> (e.g. a browser extension that holds a Ledewire JWT in `chrome.storage` and wants
+> to purchase content on any arbitrary site).
 
 Because the `ledewire-wallet` scheme uses only a Bearer JWT and a server-issued
-nonce — no crypto wallet, no MetaMask, no signing key — the entire x402 handshake
-can be performed transparently by a thin JavaScript layer running in any browser.
-The user experience depends solely on how the client-side interceptor is configured.
+nonce — no crypto wallet, no MetaMask, no signing key — the x402 handshake is
+straightforward to implement in any environment that can store a JWT and make HTTP
+requests.
 
-### How it works in a browser
+### How it works
 
 The coinbase x402 repository ships `@x402/fetch` and `@x402/axios` — drop-in
 wrappers that intercept `402` responses, build a `PAYMENT-SIGNATURE` header, and
@@ -446,12 +568,9 @@ for `ledewire-wallet` a small custom interceptor is needed that:
 1. Reads the `PAYMENT-REQUIRED` header from the `402` response
 2. Decodes and parses the Base64 JSON
 3. Picks the `ledewire-wallet` entry from `accepts`
-4. Builds the `PaymentPayload` using the user's stored JWT and the nonce from
+4. Builds the `PaymentPayload` using the stored JWT and the nonce from
    `accepted.extra.nonce`
 5. Retries the original request with the `PAYMENT-SIGNATURE` header attached
-
-Because the JWT is already available in the browser session (same credential used
-for all other API calls), no additional login or wallet-connection step is required.
 
 ### UX states
 
@@ -555,8 +674,66 @@ comes from the server.
 - `Accounting::PurchaseLedger` — no changes; Keepr journal entries identical
 - `Purchase` model and fee columns — unchanged
 - Author fee attribution and payout batches — unchanged
-- `DetailedPurchasePresenter` — reused directly for the `200` response body
 - Existing `/v1/purchases` and `/v1/checkout` endpoints — untouched
+
+---
+
+## x402 Spec Compliance Notes
+
+This section documents deliberate deviations from the [x402 v2 HTTP transport
+specification](https://github.com/coinbase/x402/blob/main/specs/transports-v2/http.md)
+and the [x402 v2 core specification](https://github.com/coinbase/x402/blob/main/specs/x402-specification-v2.md),
+along with minor gaps identified during a spec review conducted 2026-03-30.
+
+### Deviation 1 — Insufficient funds returns 422, not 402 (intentional)
+
+**What the spec says:** The HTTP transport spec's error table specifies that
+any payment settlement failure should be returned as `402 Payment Required`,
+with a `PAYMENT-RESPONSE` header containing:
+```json
+{ "success": false, "errorReason": "insufficient_funds", "transaction": "", "network": "ledewire:v1", "payer": "<uuid>" }
+```
+
+**What we do:** `PurchaseContent` returns a `FailureResponse(status:
+:unprocessable_content)` on insufficient balance. The controller renders this as
+`422 Unprocessable Content` with no `PAYMENT-RESPONSE` header — identical to the
+behaviour of the existing `/v1/purchases` endpoint.
+
+**Rationale:** The `ledewire-wallet` scheme is not crypto. A `402` on funds
+failure would cause a generic x402 client library to retry (expecting fresh
+payment credentials), which is semantically wrong — the user needs to top up their
+wallet, not supply a different payment. `422` is an unambiguous terminal failure
+that triggers the wallet funding UX flow in the Ledewire browser client.
+
+**Interoperability consequence:** A generic x402 client library (e.g., `@x402/fetch`)
+that handles scheme `ledewire-wallet` must treat `422` as a terminal error, not a
+retry signal. This must be documented in any future client SDK or browser extension
+integration guide.
+
+### Deviation 2 — No `PAYMENT-RESPONSE` header on settlement failure (intentional, follows from Deviation 1)
+
+Because we return `422` and not `402` on insufficient funds, we do not send a
+`PAYMENT-RESPONSE` header on the failure path. The spec's failure `PAYMENT-RESPONSE`
+is only meaningful when the response code is `402` (so the client knows the
+payment was attempted but failed, versus not attempted at all).
+
+For our `422` path the error information is conveyed in the standard JSON body
+(`{ error: { code:, message: } }`), which is sufficient for all current Ledewire
+clients.
+
+### Gap — `accepted.amount` not validated against server-side price (low priority)
+
+During `verify_payment`, the server checks `accepted["scheme"]` and
+`accepted["network"]` from the echoed `PaymentRequirements` object, but does not
+verify that `accepted["amount"]` matches `content.price_cents.to_s`. This is not
+a security issue — the authoritative price always comes from `content.price_cents`
+inside `PurchaseContent`, never from the client payload — but it means a client
+could send a modified `accepted.amount` without being rejected at the protocol
+boundary.
+
+Adding `accepted["amount"] == content.price_cents.to_s` as a guard in
+`WalletService#verify_payment` would tighten the protocol boundary and make the
+check explicit. Tracked as a low-priority hardening item.
 
 ---
 
@@ -570,10 +747,8 @@ comes from the server.
   `Transactions::RefundPurchase` path; there is no x402 refund protocol.
 - **x402 Bazaar discovery.** The Bazaar extension (discoverability metadata) could
   be added to the `PAYMENT-REQUIRED` response in future but is not designed here.
-- **Free content short-circuit.** Content with `price_cents: 0` should bypass the
-  paywall. The existing `PurchaseContent` service handles this at the service
-  layer; the controller should short-circuit to avoid the unnecessary `402`
-  round-trip. Exact behaviour is deferred to Open Question 4.
+- **Free content short-circuit.** Handled in the controller: `price_cents: 0`
+  returns `200` immediately with no `402` and no `Purchase` record (see Q4).
 
 ---
 
@@ -589,16 +764,29 @@ comes from the server.
    `Rails.cache` is ever swapped to Redis, `SET NX` / `GETDEL` commands would
    provide stronger atomicity and should replace the read+delete pattern.
 
-3. **`DetailedPurchasePresenter` vs `ContentWithAccessPresenter` for `200`.** The
-   x402 response currently returns the full purchase detail schema. It may be more
-   appropriate to return `ContentWithAccessPresenter` (content body + purchase
-   confirmation) so the buyer receives the content in the same response —
-   removing the need for a follow-up `GET /v1/contents/:id`.
+3. **Response shape for `200` — ✅ Resolved: use `X402ContentPresenter` / `X402ContentResponse`.**
+   A dedicated presenter is used rather than adapting either `ContentWithAccessPresenter`
+   or `DetailedPurchasePresenter`. This avoids coupling the x402 response shape to the
+   existing checkout or accounting presenters, which carry fields that are either
+   redundant on the x402 path (`access_info`, `has_purchased`, `next_required_action`)
+   or represent unnecessary information disclosure (`wallet_balance_cents`, fee
+   breakdown columns).
 
-4. **Free content behaviour.** Should `GET /v1/x402/contents/:id` for zero-price
-   content return `200` directly without a `402` round-trip, or should it create a
-   `Purchase` record and return it? Consistency with the existing checkout flow
-   suggests creating the `Purchase` silently and returning `200` immediately.
+   `X402ContentPresenter` returns:
+   - The content itself: `content_body` (markdown) or `content_uri` (external ref, revealed post-settlement)
+   - Standard content metadata: `id`, `title`, `price_cents`, `teaser`, `visibility`, `metadata`, `external_identifier`
+   - `purchase_id` — the UUID of the settled `Purchase` record, for client-side receipt storage
+
+   No `access_info` block. No wallet balance. No fee columns. The OpenAPI schema is a
+   new `X402ContentResponse` component defined alongside this implementation.
+
+4. **Free content behaviour — ✅ Resolved: return content directly, no `402`, no `Purchase` record.**
+   The controller short-circuits before the paywall when `content.price_cents.zero?`
+   and returns the content in a `200` immediately. No nonce is issued and no `Purchase`
+   record is created. This preserves the ability to charge for the content in future
+   (a phantom `completed` purchase would otherwise block re-pricing) and keeps the
+   purchases table free of zero-value records. `purchase_id` in the response is `null`
+   on this path.
 
 5. **Multiple license tiers (e.g. rental vs. purchase).** The x402 v2 `accepts`
    array supports multiple `PaymentRequirements` entries with different `amount`
@@ -631,17 +819,21 @@ comes from the server.
    support upstream. Option (b) is fastest to ship; option (a)/(c) is better
    long-term if x402 adoption widens across the platform.
 
-8. **Short-circuit `200` for returning purchasers.** Should `GET /v1/x402/contents/:id`
-   accept an optional `Authorization: Bearer <jwt>` header and, if the resolved
-   user already has a `completed` purchase for the content, return `200` immediately
-   without issuing a `402` or nonce? This eliminates one unnecessary round-trip for
-   logged-in users revisiting content they already own — the common case for human
-   browser sessions over time. The implementation adds a pre-flight check at the
-   top of the controller's `show` action (resolve user from `Authorization` header
-   if present → query `purchases` → short-circuit) and requires no changes to the
-   concern or the `PurchaseContent` service. The `PAYMENT-RESPONSE` header is
-   omitted on this path (no new settlement occurred); the response body is the same
-   presenter output.
+   For the browser extension specifically, a fourth option is (d) build on
+   [Plasmo](https://github.com/PlasmoHQ/plasmo) — an MV3 build framework with
+   first-class OAuth PKCE support and typed `chrome.storage` wrappers — which
+   would remove most of the service worker boilerplate and let the team focus on
+   the `ledewire-wallet` scheme logic. See the Reference Implementations note in
+   the Browser Extension section of Potential Future Efforts.
+
+8. **Short-circuit `200` for returning purchasers — ✅ Resolved: in scope from the start.**
+   The controller accepts an optional `Authorization: Bearer <jwt>` header on the
+   initial `GET`. If present and the resolved buyer has a `completed` purchase for
+   the content, `200` is returned immediately — no `402` issued, no nonce created.
+   The `PAYMENT-RESPONSE` header is omitted on this path (no new settlement occurred).
+   Auth failures are silent: an invalid or merchant-role token simply falls through
+   to the normal x402 flow. Implemented via `completed_purchase_for(content)` in the
+   controller; no changes to the concern or `PurchaseContent` service.
 
 ---
 
@@ -662,7 +854,7 @@ implementing a full ledewire checkout flow themselves.
 
 - **Signed access token in `PAYMENT-RESPONSE`** — a short-lived JWT (`accessToken`
   field) issued after purchase settlement, containing claims:
-  `{ sub: user_id, content_id, resource_url, entitled_for: ["ad_free"], exp }`.
+  `{ iss: "ledewire", sub: user_id, content_id, store_id, resource_url, entitled_for: ["purchase"], exp, kid: "ledewire-x402-v1" }`.
   The third-party site verifies this token offline; no per-request call to Ledewire.
 - **JWKS endpoint** (`GET /.well-known/x402-jwks.json`) — publishes the RS256/ES256
   public key so any third-party server or proxy can verify `accessToken` signatures
@@ -784,24 +976,141 @@ any one of them unblocks the others. The extension is the highest-leverage
 investment: it eliminates the need for a proxy entirely for browser-based users,
 and delivers the universal wallet experience with no per-site deployment burden.
 
+**Server-side prerequisites** ✅ All four items are complete.
+
+All three future directions (extension, proxy, third-party CMS) share the same
+four server-side additions. None require changes to the existing x402 endpoint,
+only additions:
+
+| Addition | Effort | Unlocks |
+|---|---|---|
+| ~~`resource_url` column on `Content` (migration + field)~~ | ✅ Done | Origin verification, third-party site binding |
+| ~~`accessToken` JWT in `PAYMENT-RESPONSE` (new RS256/ES256 key pair, minting logic)~~ | ✅ Done | Offline entitlement verification by proxy/CMS |
+| ~~JWKS endpoint (`GET /.well-known/x402-jwks.json`)~~ | ✅ Done | Offline verification of `accessToken` by any third party |
+| ~~Origin verification endpoint (`GET /v1/x402/verify-origin?url=`)~~ | ✅ Done | Extension anti-phishing guard; heavily HTTP-cached |
+
+All four items have been delivered. The `resource_url` migration was the natural
+first step as it unblocked all the rest.
+
+**Reference implementations (browser extension research)**
+
+Three open source MV3 extensions provide directly applicable patterns:
+
+- **Bitwarden** (`apps/browser` in [github.com/bitwarden/clients](https://github.com/bitwarden/clients))
+  — the most directly applicable reference. Completed a full MV3 migration and
+  has solved every hard problem: PKCE login via `chrome.identity.launchWebAuthFlow`,
+  encrypted token storage in `chrome.storage.local` (master-key-derived encryption,
+  no plaintext secrets on disk), and service worker lifecycle management. Their
+  `apps/browser/src/background/` directory is the best starting point for the token
+  lifecycle, and `AuthService` for the PKCE flow.
+
+- **Plasmo** ([github.com/PlasmoHQ/plasmo](https://github.com/PlasmoHQ/plasmo))
+  — an MV3 build framework with first-class OAuth PKCE support and typed storage
+  wrappers (`@plasmohq/storage`, `@plasmohq/messaging`). Their docs include an
+  end-to-end OAuth PKCE example. Using Plasmo removes most service worker
+  boilerplate and is the recommended approach if the team is not familiar with
+  raw MV3 extension development.
+
+- **Requestly** ([github.com/requestly/requestly](https://github.com/requestly/requestly))
+  — open source request-intercepting MV3 extension. Useful reference specifically
+  for the Declarative Net Request + service worker message-passing pattern used
+  to intercept responses and hand them to the background worker for processing.
+
+**Critical MV3 service worker lifecycle gotcha**
+
+MV3 service workers are killed after ~30 seconds of inactivity. The access JWT
+(held in memory only) is lost on every SW restart. The canonical solution:
+
+1. Store the refresh token in `chrome.storage.local` (encrypted)
+2. On every SW wake-up, re-mint the access JWT via a `/auth/refresh` call and
+   hold it in memory for the lifetime of that SW invocation
+3. Use **`chrome.storage.session`** (available Chrome 102+, Firefox 121+) for
+   the access JWT — it survives SW restarts within a browser session without
+   hitting persistent storage, and clears automatically on browser close. This
+   is cleaner than the `chrome.alarms` keepalive workaround used in older
+   Bitwarden versions.
+
 ---
 
 ## Implementation Checklist
 
-- [ ] Create `app/controllers/concerns/x402_wallet_paywall.rb`
-- [ ] Create `app/controllers/v1/x402/contents_controller.rb`
-- [ ] Add `namespace :x402 { resources :contents, only: [:show] }` inside `namespace :v1` in `config/routes.rb`
-- [ ] Add `GET /v1/x402/contents/{id}` to `docs/api/v1/ledewire.yml` (request and response schemas)
-- [ ] Request spec: `spec/requests/v1/x402/contents_spec.rb`
-  - [ ] `GET` without `PAYMENT-SIGNATURE` → 402, valid `PAYMENT-REQUIRED` header present
-  - [ ] `GET` with valid JWT + nonce → 200, `PAYMENT-RESPONSE` header, correct purchase returned
-  - [ ] `GET` with replayed nonce → 402 (nonce already consumed)
-  - [ ] `GET` with expired nonce (cache TTL elapsed) → 402
-  - [ ] `GET` with insufficient wallet balance → 422
-  - [ ] `GET` with invalid JWT in signature → 401
-  - [ ] `GET` for already-purchased content → 200, idempotent (no double-charge)
-  - [ ] `GET` for unknown content → 404
-- [ ] Flow spec: `spec/flows/x402_wallet_purchase_flow_spec.rb`
-  - [ ] Full round-trip: fund wallet → x402 purchase → assert ledger balance
-- [ ] Resolve Open Question 3 (response shape) before implementing the controller
-- [ ] Confirm `Rails.cache` is Solid Cache in all environments before shipping
+### Pre-implementation decisions
+
+- [x] ~~Resolve Open Question 3~~ — decided: `X402ContentPresenter` / `X402ContentResponse` (new presenter, new schema)
+- [x] ~~Resolve Open Question 4~~ — decided: `price_cents: 0` returns `200` directly; no `402`, no `Purchase` record, `purchase_id: null`
+- [x] ~~Resolve Open Question 8~~ — decided: in scope from the start; `Authorization` pre-flight in controller
+
+### Server-side changes
+
+- [x] Add `PAYMENT-REQUIRED` and `PAYMENT-RESPONSE` to `expose:` in
+      `config/initializers/cors.rb` — without this, browser JavaScript cannot read
+      either header (`res.headers.get("PAYMENT-REQUIRED")` returns `null` silently)
+- [x] Rate limiting: `rate_limit to: 30, within: 1.minute, only: :show` in the controller
+      class body using Rails 8 native rate limiting (no gem required). Backed by
+      `config.action_controller.cache_store = :memory_store` in test env.
+- [x] Create `app/controllers/concerns/x402_wallet_paywall.rb` (thin HTTP adapter;
+      protocol logic lives in `app/services/x402/wallet_service.rb`)
+- [x] Create `app/services/x402/wallet_service.rb` — pure service object, no Rails
+      request/response objects; returns `Result` struct with `response`,
+      `payment_required_header`, `payment_response_header`
+- [x] Create `app/controllers/v1/x402/contents_controller.rb`
+- [x] Add `namespace :x402 { resources :contents, only: [:show] }` inside `namespace :v1` in `config/routes.rb`
+- [x] Add `X402ContentResponse` component schema to `docs/api/v1/ledewire.yml` — fields:
+      `id`, `content_type`, `title`, `price_cents`, `teaser`, `visibility`, `metadata`,
+      `external_identifier`, `purchase_id`, plus either `content_body` (markdown) or
+      `content_uri` (external_ref)
+- [x] Create `app/presenters/x402_content_presenter.rb`
+- [x] Add `GET /v1/x402/contents/{id}` path to `docs/api/v1/ledewire.yml` — response
+      schema is `X402ContentResponse`
+- [x] Add `ahoy.track("[Purchase] Create", ..., via: "x402")` on the successful settlement
+      path in the controller — x402 purchases appear in analytics alongside standard purchases
+
+### Request spec: `spec/requests/v1/x402/contents_spec.rb`
+
+- [x] `GET` without `PAYMENT-SIGNATURE` → 402, valid `PAYMENT-REQUIRED` header present
+- [x] `GET` with valid buyer JWT + nonce → 200, `PAYMENT-RESPONSE` header, content body returned
+- [x] `GET` with replayed nonce → 402 (nonce already consumed)
+- [x] `GET` with expired nonce (cache TTL elapsed) → 402
+- [x] `GET` with insufficient wallet balance → 422
+- [x] `GET` with wallet balance exactly equal to price → 422 (documents `PurchaseContent` exact-balance behaviour)
+- [x] `GET` with invalid JWT in signature → 401
+- [x] `GET` with a merchant-role JWT in payload → 403
+- [ ] `GET` with a store-manager-role JWT in payload → 403 _(not yet: no store-manager JWT factory in spec)_
+- [x] `GET` for already-purchased content via x402 flow → 200, idempotent (no double-charge via `PurchaseContent`)
+- [x] `GET` with `Authorization: Bearer <jwt>` for already-purchased content → 200, no `402` issued, no `PAYMENT-RESPONSE` header
+- [x] `GET` for free content (`price_cents: 0`) → 200, `purchase_id: null`, no `402` issued, no `Purchase` record created
+- [x] `GET` exceeding rate limit (> 30 req/min from same IP) → 429
+- [x] `GET` for unknown content → 404
+
+### Service spec: `spec/services/x402/wallet_service_spec.rb`
+
+- [x] 20 examples covering all `WalletService` branches including protocol guard clauses
+      (bad version, bad scheme/network, contentId mismatch, cross-content nonce) not
+      reachable via the HTTP layer
+
+### Flow spec: `spec/flows/x402_wallet_purchase_flow_spec.rb`
+
+- [x] Full round-trip: fund wallet → x402 purchase → assert ledger balance
+
+### Final checks
+
+- [x] Confirm `Rails.cache` is Solid Cache in all environments before shipping
+- [x] Add `ahoy.track("[Purchase] Create", ..., via: "x402")` on the successful settlement
+      path in the controller — x402 purchases appear in analytics alongside standard purchases
+
+### Server-side prerequisites (Phase 2)
+
+- [x] Add `resource_url` column to `contents` (migration `20260330124519_add_resource_url_to_contents.rb`)
+- [x] Add `by_resource_url` scope to `Content` model
+- [x] Create `app/services/x402/access_token_service.rb` — RS256 JWT minting + JWKS document generation
+- [x] Add `config.x402_access_token_ttl` (24h) and `config.x402_verify_origin_cache_ttl` (1h) to `config/application.rb`
+- [x] Update `X402::WalletService` to include `accessToken` in settlement hash (`.compact` omits it when key absent)
+- [x] Create `app/controllers/x402/jwks_controller.rb` — `GET /.well-known/x402-jwks.json`, 24h Cache-Control
+- [x] Create `app/controllers/v1/x402/verify_origin_controller.rb` — `GET /v1/x402/verify-origin?url=`, 1h cache, 60/min rate limit
+- [x] Add routes: `GET /v1/x402/verify-origin` (inside v1/x402 namespace) and `GET /.well-known/x402-jwks.json`
+- [x] Add `VerifyOriginVerified`, `VerifyOriginUnverified`, `JwksResponse`, `SettlementResponse` schemas + paths to OpenAPI spec
+- [x] Store RS256 key pair in `credentials.yml.enc` under `x402.access_token_private_key` / `x402.access_token_public_key`
+- [x] Spec: `spec/services/x402/access_token_service_spec.rb` (10 examples — claims, RS256, JWKS modulus, TTL, graceful nil)
+- [x] Spec: `spec/requests/x402/jwks_spec.rb` (6 examples — 200, fields, Cache-Control, modulus match)
+- [x] Spec: `spec/requests/v1/x402/verify_origin_spec.rb` (11 examples — verified/unverified/private/invalid URLs, no auth required)
+- [x] Spec: `accessToken` presence and RS256 verifiability added to `spec/requests/v1/x402/contents_spec.rb`

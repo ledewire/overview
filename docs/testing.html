@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Ledewire vision — strategic direction, principles, and long-term thinking.">
-  <title>Vision — Ledewire Docs</title>
+  <meta name="description" content="Ledewire testing docs — testing strategy, style guides, and flow specs.">
+  <title>Testing Docs — Ledewire Docs</title>
   <link rel="stylesheet" href="../assets/css/style.css">
 </head>
 <body>
@@ -19,9 +19,9 @@
         <ul class="nav-menu">
           <li><a href="getting-started.html">Docs</a></li>
           <li><a href="architecture.html">Architecture</a></li>
-          <li><a href="vision.html" class="active">Vision</a></li>
+          <li><a href="vision.html">Vision</a></li>
           <li><a href="design.html">Design</a></li>
-          <li><a href="testing.html">Testing</a></li>
+          <li><a href="testing.html" class="active">Testing</a></li>
           <li><a href="../roadmap.html">Roadmap</a></li>
           <li><a href="contributing.html">Contributing</a></li>
         </ul>
@@ -42,12 +42,7 @@
       <div class="sidebar-section">
         <span class="sidebar-label">Vision</span>
         <nav class="sidebar-nav">
-          <a href="vision.html" class="active">All Vision Docs</a>
-          <a href="view.html?doc=vision/overview.md">Overview</a>
-          <a href="view.html?doc=vision/x402-wallet-payment-design.md">x402 Wallet Payment Design</a>
-          <a href="view.html?doc=vision/js-gate-design.md">JS Gate Design</a>
-          <a href="view.html?doc=vision/agentic-content-delivery-design.md">Agentic Content Delivery</a>
-          <!-- Add new vision doc links here -->
+          <a href="vision.html">All Vision Docs</a>
         </nav>
       </div>
       <div class="sidebar-section">
@@ -59,7 +54,10 @@
       <div class="sidebar-section">
         <span class="sidebar-label">Testing</span>
         <nav class="sidebar-nav">
-          <a href="testing.html">All Testing Docs</a>
+          <a href="testing.html" class="active">All Testing Docs</a>
+          <a href="view.html?doc=testing/testing-style.md">Testing Style Guide</a>
+          <a href="view.html?doc=testing/flow-testing-design.md">Flow Testing Design</a>
+          <!-- Add new testing doc links here -->
         </nav>
       </div>
       <div class="sidebar-section">
@@ -79,42 +77,28 @@
     </aside>
 
     <main class="doc-content">
-      <h1>Vision</h1>
+      <h1>Testing Docs</h1>
       <p class="doc-description">
-        Strategic thinking, long-term direction, and the principles that guide how
-        Ledewire evolves. These documents are less about what we&rsquo;re building
-        right now and more about <em>why</em> &mdash; and where we&rsquo;re ultimately headed.
+        Testing strategy, conventions, and flow specs. These documents define how
+        Ledewire&rsquo;s test suite is structured, what patterns to follow, and how
+        end-to-end flows are covered.
       </p>
 
       <h2>Documents</h2>
 
       <div class="cards-grid" style="margin-top: 20px;">
 
-        <a href="view.html?doc=vision/overview.md" class="card">
-          <span class="card-icon">&#x1F9ED;</span>
-          <h3>Vision Overview</h3>
-          <p>The north star for Ledewire &mdash; what we&rsquo;re building toward and the principles that shape our decisions.</p>
+        <a href="view.html?doc=testing/testing-style.md" class="card">
+          <span class="card-icon">&#x1F4D6;</span>
+          <h3>Testing Style Guide</h3>
+          <p>RSpec request testing conventions &mdash; behavior-driven patterns, schema validation integration, and coverage expectations.</p>
           <span class="card-link">Read &rarr;</span>
         </a>
 
-        <a href="view.html?doc=vision/x402-wallet-payment-design.md" class="card">
-          <span class="card-icon">&#x1F4B3;</span>
-          <h3>x402 Wallet Payment Design</h3>
-          <p>Proposed design for wallet-based payments using the x402 protocol, including transaction flow, fee breakdown, and author payouts.</p>
-          <span class="card-link">Read &rarr;</span>
-        </a>
-
-        <a href="view.html?doc=vision/js-gate-design.md" class="card">
-          <span class="card-icon">&#x1F6AA;</span>
-          <h3>JS Gate Design</h3>
-          <p>Soft content gating via an embeddable script &mdash; architecture, content registration flow, purchase UX, and token lifecycle.</p>
-          <span class="card-link">Read &rarr;</span>
-        </a>
-
-        <a href="view.html?doc=vision/agentic-content-delivery-design.md" class="card">
-          <span class="card-icon">&#x1F916;</span>
-          <h3>Agentic Content Delivery</h3>
-          <p>Strategy for enforcing x402 paywalls at the origin so AI agents pay for content directly &mdash; delivery mechanisms, the Bazaar discovery layer, and implementation roadmap.</p>
+        <a href="view.html?doc=testing/flow-testing-design.md" class="card">
+          <span class="card-icon">&#x1F9EA;</span>
+          <h3>Flow Testing Design</h3>
+          <p>Proposed <code>spec/flows</code> approach for end-to-end purchase and funding flows using RSpec &mdash; structure, helpers, and reference implementation.</p>
           <span class="card-link">Read &rarr;</span>
         </a>
 
